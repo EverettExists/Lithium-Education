@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Tab</title>
+    <style>
+        :root {
+            --bg-color: #000000;
+            --card-bg: #161616;
+            --accent: #ffe870;
+            --text-main: #ffffff;
+            --text-dim: #777777;
+            --border: #222222;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+       
+        /* CSS Logo Styles */
+        .css-logo {
+            height: 45px;
+            width: 40px;
+            background-color: white;
+            position: relative;
+            /* Creates the V shape indent at the top using a pseudoelement */
+            clip-path: polygon(0 100%, 100% 100%, 100% 10px, 50% 35px, 0 10px);
+        }
+
+
+        h1 { font-size: 3rem; font-weight: 900; color: var(--accent); margin: 0; text-transform: uppercase; letter-spacing: -2px; }
+       
+        .node-info { color: var(--text-dim); font-size: 0.9rem; margin-bottom: 20px; text-align: center; }
+
+        .input-group { width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 25px; }
+        input {
+            width: 100%;
+            padding: 12px 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: white;
+            outline: none;
+            box-sizing: border-box;
+        }
+        input:focus { border-color: var(--accent); }
+
+        .add-node-box { display: flex; gap: 10px; background: #111; padding: 15px; border-radius: 12px; border: 1px dashed var(--border); }
+
+        .controls { display: flex; gap: 10px; margin-bottom: 30px; flex-wrap: wrap; justify-content: center; }
+        .btn { background: var(--card-bg); border: 1px solid var(--border); color: var(--text-main); padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+        .btn:hover { border-color: var(--accent); color: var(--accent); }
+        .btn.active { background: var(--accent); color: #000; font-weight: bold; }
+
+        #node-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; width: 100%; max-width: 1100px; }
+        #node-container.list-mode { display: flex; flex-direction: column; max-width: 800px; }
+
+        .node-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 25px;
+            cursor: pointer;
+            text-align: center;
+            transition: 0.2s;
+            position: relative;
+        }
+        .list-mode .node-card { padding: 15px 20px; text-align: left; display: flex; align-items: center; }
+        .node-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+
+        .node-url { display: none; }
+        .status-dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; display: inline-block; margin-right: 10px; }
+       
+        .delete-btn { position: absolute; top: 5px; right: 5px; background: transparent; border: none; color: #ff4444; cursor: pointer; font-size: 0.8rem; opacity: 0; transition: 0.2s; }
+        .node-card:hover .delete-btn { opacity: 1; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <!-- CSS Logo Element -->
+        <div class="css-logo"></div>
+        <h1>LITHIUM</h1>
+    </header>
+
+    <div class="node-info">Active Nodes: <span id="nodeCount">0</span></div>
+
+    <div class="input-group">
+        <input type="text" id="searchBar" placeholder="Search..." onkeyup="filterNodes()">
+        <div class="add-node-box">
+            <input type="text" id="newName" placeholder="Name">
+            <input type="text" id="newUrl" placeholder="URL">
+            <button class="btn" style="background: var(--accent); color: #000;" onclick="addUserNode()">Add</button>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn active" id="cardBtn" onclick="setView('card')">Grid</button>
+        <button class="btn" id="listBtn" onclick="setView('list')">List</button>
+        <input type="file" id="fileInput" style="display:none" onchange="loadFromDisk(event)">
+        <button class="btn" onclick="cloakLithium()">Cloak</button>
+    </div>
+
+    <div id="node-container"></div>
+
+    <script>
+        const baseNodes = [
+            { name: "WAVE", url: "glazingmahadmahad.allastella.it" },
+            { name: "WAVE", url: "schedule.national-birdshow.com" },
+            { name: "GALAXY", url: "holy.itafricagroup.com" },
+            { name: "GALAXY", url: "cease.touchofpink.ca" },
+            { name: "ROSIN", url: "wasd.vandrekalenderen.dk" },
+            { name: "ROSIN", url: "ramen.vandrekalenderen.dk" },
+            { name: "SELENITE", url: "vcsa.selenite.graphicon.org" },
+            { name: "SELENITE", url: "smartpn.creographix.at" },
+            { name: "QUASAR", url: "eglobaleducation.com" },
+            { name: "QUASAR", url: "service.fcpchurch.org" },
+            { name: "GHOST", url: "vcsa.worldpolyathlon.com" },
+            { name: "GHOST", url: "player-nation.hotelconsuladoinn.com" },
+            { name: "TRUFFLED", url: "waguri.jz-katigis.eu" },
+            { name: "TRUFFLED", url: "waguri.jyotsnapandey.com.np" },
+            { name: "UTOPIA", url: "wheresyourmoney.gatewayjobs.com.np" },
+            { name: "UTOPIA", url: "jacobcheeseman.fundacioncidea.org.ar" },
+            { name: "SHADOW", url: "keenbio.artmuseum.org" },
+            { name: "SHADOW", url: "lightstats.mwbread.com" },
+            { name: "BOLT", url: "vcsabolt.navatandham.org.np" },
+            { name: "BOLT", url: "bolts.itafricagroup.com" },
+            { name: "FROGIE'S ARCADE", url: "vallejocharterschool.org" }
+        ];
+
+        let userNodes = JSON.parse(localStorage.getItem('lithium_nodes')) || [];
+
+        function setView(mode) {
+            const container = document.getElementById('node-container');
+            if (mode === 'list') {
+                container.classList.add('list-mode');
+                document.getElementById('listBtn').classList.add('active');
+                document.getElementById('cardBtn').classList.remove('active');
+            } else {
+                container.classList.remove('list-mode');
+                document.getElementById('cardBtn').classList.add('active');
+                document.getElementById('listBtn').classList.remove('active');
+            }
+        }
+
+        function renderNodes() {
+            const container = document.getElementById('node-container');
+            container.innerHTML = '';
+            const allNodes = [...baseNodes, ...userNodes];
+           
+            allNodes.forEach((node, index) => {
+                const card = document.createElement('div');
+                card.className = 'node-card';
+                card.onclick = (e) => { if(e.target.tagName !== 'BUTTON') launchNode(node.url); };
+               
+                let deleteHTML = index >= baseNodes.length ? `<button class="delete-btn" onclick="removeNode(${index - baseNodes.length})">✕</button>` : '';
+               
+                card.innerHTML = `${deleteHTML}<span class="status-dot"></span><span class="node-name">${node.name}</span>`;
+                container.appendChild(card);
+            });
+            updateCount();
+        }
+
+        function addUserNode() {
+            const name = document.getElementById('newName').value;
+            const url = document.getElementById('newUrl').value;
+            if(name && url) {
+                userNodes.push({ name, url });
+                localStorage.setItem('lithium_nodes', JSON.stringify(userNodes));
+                renderNodes();
+                document.getElementById('newName').value = '';
+                document.getElementById('newUrl').value = '';
+            }
+        }
+
+        function removeNode(idx) {
+            userNodes.splice(idx, 1);
+            localStorage.setItem('lithium_nodes', JSON.stringify(userNodes));
+            renderNodes();
+        }
+
+        function updateCount() {
+            const visible = Array.from(document.getElementsByClassName('node-card')).filter(c => c.style.display !== 'none').length;
+            document.getElementById('nodeCount').innerText = visible;
+        }
+
+        function filterNodes() {
+            const input = document.getElementById('searchBar').value.toLowerCase();
+            const cards = document.getElementsByClassName('node-card');
+            for (let card of cards) {
+                const name = card.querySelector('.node-name').textContent.toLowerCase();
+                card.style.display = name.includes(input) ? "" : "none";
+            }
+            updateCount();
+        }
+
+        function launchNode(url) {
+            const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+            const win = window.open('about:blank', '_blank');
+            if (win) {
+                const iframe = win.document.createElement('iframe');
+                iframe.src = fullUrl;
+                iframe.style = "width:100vw; height:100vh; border:none; position:fixed; top:0; left:0;";
+                win.document.body.style.margin = '0';
+                win.document.body.appendChild(iframe);
+            }
+        }
+
+        function saveToDisk() {
+            const data = JSON.stringify(userNodes);
+            const blob = new Blob([data], {type: 'application/json'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'lithium_nodes.json';
+            a.click();
+        }
+
+        function loadFromDisk(event) {
+            const file = event.target.files;
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const loadedNodes = JSON.parse(e.target.result);
+                    if (Array.isArray(loadedNodes)) {
+                        userNodes = loadedNodes;
+                        localStorage.setItem('lithium_nodes', JSON.stringify(userNodes));
+                        renderNodes();
+                        alert('Nodes loaded successfully! Note: Base nodes are reset on page load.');
+                    }
+                } catch (err) {
+                    alert('Invalid file format. Please load a .json node file.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function cloakLithium() {
+            const content = `<!DOCTYPE html><html>${document.documentElement.innerHTML}</html>`;
+            const win = window.open('about:blank', '_blank');
+            if (win) {
+                win.document.open();
+                win.document.write(content);
+                win.document.close();
+                window.location.replace('about:blank');
+            }
+        }
+
+        renderNodes();
+    </script>
+</body>
+</html>
